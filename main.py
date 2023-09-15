@@ -1,153 +1,101 @@
+import unittest
 from collections import UserDict
-
 
 class Field:
     def __init__(self, value):
         self.value = value
 
-    def __repr__(self):
-        return self.value
-
     def __str__(self):
-        return self.value
-
-
-class Phone(Field):
-    pass
-
+        return str(self.value)
 
 class Name(Field):
     pass
 
+class Phone(Field):
+    def __init__(self, value):
+        if len(value) != 10 or not value.isdigit():
+            raise ValueError("Невірний формат номера телефону")
+        super().__init__(value)
 
 class Record:
-    def __init__(self, name: Name, phone: Phone):
-        self.name = name
+    def __init__(self, name):
+        self.name = Name(name)
         self.phones = []
-        self.phones.append(phone)
 
-    def add_phone(self, phone: Phone):
-        self.phones.append(phone)
+    def add_phone(self, phone):
+        self.phones.append(Phone(phone))
 
-    def delete_phone(self, phone):
-        for el in self.phones:
-            if phone == el.value:
-                self.phones.remove(el)
-                return
-        print("Error number")
+    def remove_phone(self, phone):
+        self.phones = [p for p in self.phones if p.value != phone]
 
-    def change_phone(self, old_phone, new_phone):
-        for number in self.phones:
-            print(number)
-            if old_phone == number.value:
-                new_phone = Phone(new_phone)
-                self.phones.remove(number)
-                self.add_phone(new_phone)
-                return
-        print("Error number")
+    def edit_phone(self, old_phone, new_phone):
+        found = False
+        for phone in self.phones:
+            if phone.value == old_phone:
+                phone.value = new_phone
+                found = True
+                break
+        if not found:
+            raise ValueError("Номер телефону не знайдено")
+
+    def find_phone(self, phone):
+        for p in self.phones:
+            if p.value == phone:
+                return p
+        return None
 
     def __str__(self):
-        return f'Name: {self.name} Phones: {", ".join([str(p) for p in self.phones if str(p) != ""])}'
-
+        phone_str = '; '.join(str(p) for p in self.phones)
+        return f"Contact name: {self.name}, phones: {phone_str}"
 
 class AddressBook(UserDict):
+    def add_record(self, record):
+        self.data[record.name.value] = record
 
-    def add_record(self, args):
-        for contact_name in self.data:
-            if args.name == contact_name:
-                return print("Contact exist")
-        self.data[args.name] = args
+    def find(self, name):
+        return self.data.get(name)
 
-    def __str__(self):
-        result = "\n".join([str(v) for v in self.data.values()])
-        return result
+    def delete(self, name):
+        if name in self.data:
+            del self.data[name]
 
+class TestAddressBook(unittest.TestCase):
+    def test_add_record(self):
+        book = AddressBook()
+        john_record = Record("John")
+        book.add_record(john_record)
+        self.assertEqual(book.find("John"), john_record)
 
-def input_error(func):
-    def verification(args):
-        try:
-            user_command = [args.split(" ")[0].lower()]
-            user_info = args.split(" ")[1:]
-            for el in user_info:
-                user_command.append(el)
-            if len(user_info) < 2:
-                user_command.append("")
-            verification_result = func(user_command)
-            return verification_result
-        except KeyError:
-            print("Invalid command please try again!")
-        except TypeError:
-            print("Invalid command please try again!")
-        except IndexError:
-            print("Invalid command please try again!")
-        except ValueError:
-            print("Invalid command please try again!")
+    def test_delete_record(self):
+        book = AddressBook()
+        john_record = Record("John")
+        book.add_record(john_record)
+        book.delete("John")
+        self.assertIsNone(book.find("John"))
 
-    return verification
+class TestRecord(unittest.TestCase):
+    def test_add_phone(self):
+        john_record = Record("John")
+        john_record.add_phone("1234567890")
+        self.assertEqual(john_record.phones[0].value, "1234567890")
 
+    def test_remove_phone(self):
+        john_record = Record("John")
+        john_record.add_phone("1234567890")
+        john_record.remove_phone("1234567890")
+        self.assertEqual(john_record.phones, [])
 
-CONTACT = AddressBook()
+    def test_edit_phone(self):
+        john_record = Record("John")
+        john_record.add_phone("1234567890")
+        john_record.edit_phone("1234567890", "4444444444")
+        self.assertEqual(john_record.phones[0].value, "4444444444")
 
+    def test_find_phone(self):
+        john_record = Record("John")
+        john_record.add_phone("1234567890")
+        phone = john_record.find_phone("1234567890")
+        self.assertEqual(phone.value, "1234567890")
 
-@input_error
-def handler(commands):
-
-    def new_user():
-        record = Record(Name(commands[1]), Phone(commands[2]))
-        CONTACT.add_record(record)
-
-    def change():
-        for name in CONTACT:
-            if str(name) == commands[1]:
-                new_phone = commands[3]
-                old_phone = commands[2]
-                CONTACT.data[name].change_phone(old_phone, new_phone)
-                return
-        print("Error name")
-
-    def hello():
-        print("Hello can I help you?")
-
-    def show_all():
-        print(CONTACT)
-
-    def delete_number():
-        for name in CONTACT:
-            print(str(name) == commands[1])
-            print(commands[2])
-            if str(name) == commands[1]:
-                CONTACT.data[name].delete_phone(commands[2])
-                return
-        print("Error name")
-
-    def add_more_number():
-        for name in CONTACT:
-            if str(name) == commands[1]:
-                CONTACT.data[name].add_phone(Phone(commands[2]))
-                return
-        print("Error name")
-
-    COMMAND = {
-        "hello": hello,
-        "add": new_user,
-        "show": show_all,
-        "delete": delete_number,
-        "more": add_more_number,
-        "change": change
-    }[commands[0]]()
-
-    return
-
-
-def main():
-    print("You are Wellcome!")
-    while True:
-        user_input = input('==> ')
-        if user_input in ["exit", "close", "good bye", "."]:
-            break
-        handler(user_input)
-    print("Good bye!")
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    unittest.main()
