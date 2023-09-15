@@ -1,174 +1,153 @@
-import sys
-
 from collections import UserDict
 
-class AddressBook(UserDict):
-    def add_record(self, Record):
-        self.data[Record.name.value] = Record
-
-class Record:
-    def __init__(self, Name):
-        self.name = Name
-        self.phones = []
-
-    def add_phone(self, Phone):
-        self.phones.append(Phone)
-
-    def remove_phone(self, Rem_Phone):
-        for Phone in self.phones:
-            if Phone.value == Rem_Phone.value:
-                self.phones.remove(Phone)
-
-    def change_phone(self, Old_Phone, New_Phone):
-        for Phone in self.phones:
-            if Phone.value == Old_Phone.value:
-                self.phones.remove(Phone)
-                self.phones.append(New_Phone)
 
 class Field:
     def __init__(self, value):
         self.value = value
 
-class Name(Field):
-    pass
+    def __repr__(self):
+        return self.value
+
+    def __str__(self):
+        return self.value
+
 
 class Phone(Field):
     pass
 
-address_book = AddressBook()
 
-def parse(user_input):
-    """
-    This function parse user input into command and arguments
-    :param user_input: user input -> str
-    :return: command -> str, args -> list
-    """
-    user_input_list = user_input.split(' ')
-    command = user_input_list[0]
-    args = user_input_list[1:]
-    return (command, args)
+class Name(Field):
+    pass
+
+
+class Record:
+    def __init__(self, name: Name, phone: Phone):
+        self.name = name
+        self.phones = []
+        self.phones.append(phone)
+
+    def add_phone(self, phone: Phone):
+        self.phones.append(phone)
+
+    def delete_phone(self, phone):
+        for el in self.phones:
+            if phone == el.value:
+                self.phones.remove(el)
+                return
+        print("Error number")
+
+    def change_phone(self, old_phone, new_phone):
+        for number in self.phones:
+            print(number)
+            if old_phone == number.value:
+                new_phone = Phone(new_phone)
+                self.phones.remove(number)
+                self.add_phone(new_phone)
+                return
+        print("Error number")
+
+    def __str__(self):
+        return f'Name: {self.name} Phones: {", ".join([str(p) for p in self.phones if str(p) != ""])}'
+
+
+class AddressBook(UserDict):
+
+    def add_record(self, args):
+        for contact_name in self.data:
+            if args.name == contact_name:
+                return print("Contact exist")
+        self.data[args.name] = args
+
+    def __str__(self):
+        result = "\n".join([str(v) for v in self.data.values()])
+        return result
+
 
 def input_error(func):
-    """
-    This is a decorator function that catches errors that may occur when calling a function given as a parameter
-    :param func -> function
-    :return func if no error, str if there's an error
-    """
-    def inner(*args):
+    def verification(args):
         try:
-            return func(*args)
+            user_command = [args.split(" ")[0].lower()]
+            user_info = args.split(" ")[1:]
+            for el in user_info:
+                user_command.append(el)
+            if len(user_info) < 2:
+                user_command.append("")
+            verification_result = func(user_command)
+            return verification_result
         except KeyError:
-            return 'The name is not in contacts. Enter user name please'
-        except ValueError:
-            return 'ValueError: Give me name and phone please'
-        except IndexError:
-            return 'IndexError: Give me name and phone please'
+            print("Invalid command please try again!")
         except TypeError:
-            return 'You entered invalid numbers of arguments for this command'
-    return inner
+            print("Invalid command please try again!")
+        except IndexError:
+            print("Invalid command please try again!")
+        except ValueError:
+            print("Invalid command please try again!")
+
+    return verification
+
+
+CONTACT = AddressBook()
+
 
 @input_error
-def add_contact(name, phone=None):
-    if name in address_book.data.keys():
-        address_book.data[name].add_phone(Phone(phone))
-        return f'Phone {phone} successfully added to contact {name}'
-    else:
-        record = Record(Name(name))
-        record.add_phone(Phone(phone))
-        address_book.add_record(record)
-        return f'Contact {name} -> {phone} successfully added'
+def handler(commands):
 
-@input_error
-def change_contact(name, old_phone, new_phone):
-    """
-    This function change the phone for contact with the name that are given as parameters in the address_book
-    :param name -> str
-           phone -> str
-    :return str
-    """
-    address_book.data[name].change_phone(Phone(old_phone), Phone(new_phone))
-    return f'Contact {name} -> {new_phone} successfully changed'
+    def new_user():
+        record = Record(Name(commands[1]), Phone(commands[2]))
+        CONTACT.add_record(record)
 
-@input_error
-def remove_phone(name, phone):
-    """
-    This function remove the phone for contact with the name that are given as parameters in the address_book
-    :param name -> str
-           phone -> str
-    :return str
-    """
-    address_book.data[name].remove_phone(Phone(phone))
-    return f'The phone {phone} for contact {name} successfully removed'
+    def change():
+        for name in CONTACT:
+            if str(name) == commands[1]:
+                new_phone = commands[3]
+                old_phone = commands[2]
+                CONTACT.data[name].change_phone(old_phone, new_phone)
+                return
+        print("Error name")
 
-@input_error
-def get_phone(name):
-    """
-    This function change the phone for contact with the name that are given as parameters in the address_book
-    :param name -> str
-    :return phone -> str
-    """
-    if not address_book.data[name].phones:
-        return f'There is no phones for contact with name {name}'
-    else:
-        phones = 'phones:\n'
-        for phone in address_book.data[name].phones:
-            phones += f'{phone.value}\n'
-        return f'{name} ->\n{phones}'
+    def hello():
+        print("Hello can I help you?")
 
-def show_all():
-    """
-    This function returns all contact from the address_book
-    :param: None
-    :return: phone_book -> str
-    """
-    phone_book = ''
-    for name, info in address_book.data.items():
-        phones = 'phones:\n'
-        for phone in address_book.data[name].phones:
-            phones += f'{phone.value}\n'
-        phone_book += f'{name} ->\n{phones}\n'
-    return phone_book
+    def show_all():
+        print(CONTACT)
 
-def greeting():
-    return 'How can I help you?'
+    def delete_number():
+        for name in CONTACT:
+            print(str(name) == commands[1])
+            print(commands[2])
+            if str(name) == commands[1]:
+                CONTACT.data[name].delete_phone(commands[2])
+                return
+        print("Error name")
 
-def end():
-    return 'Good bye!'
+    def add_more_number():
+        for name in CONTACT:
+            if str(name) == commands[1]:
+                CONTACT.data[name].add_phone(Phone(commands[2]))
+                return
+        print("Error name")
+
+    COMMAND = {
+        "hello": hello,
+        "add": new_user,
+        "show": show_all,
+        "delete": delete_number,
+        "more": add_more_number,
+        "change": change
+    }[commands[0]]()
+
+    return
+
 
 def main():
-    """
-    This function implements all the logic of interaction with the user, all 'print' and 'input' takes place here
-    :param: None
-    :return: None
-    """
-    handler_commands = {'hello': greeting,
-                        'hi': greeting,
-                        'add': add_contact,
-                        'change': change_contact,
-                        'phone': get_phone,
-                        'remove': remove_phone,
-                        'show all': show_all,
-                        '.': end,
-                        'good bye': end,
-                        'close': end,
-                        'exit': end}
-
+    print("You are Wellcome!")
     while True:
-        user_input = input('>>>:')
-        if user_input.lower() in handler_commands.keys():
-            output = handler_commands[user_input.lower()]()
-            print(output)
-            if output == 'Good bye!':
-                sys.exit()
-        else:
-            command, args = parse(user_input.lower())
-            if command in handler_commands.keys():
-                print(handler_commands[command](*args))
-            else:
-                print(
-                    "You entered an invalid command, please enter one of the next commands: "
-                    "'hello', 'hi', 'show all', 'add', 'change', 'phone', 'delete', '.', 'good bye', 'close', 'exit'")
+        user_input = input('==> ')
+        if user_input in ["exit", "close", "good bye", "."]:
+            break
+        handler(user_input)
+    print("Good bye!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
